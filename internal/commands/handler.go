@@ -38,138 +38,51 @@ func (h *Handler) LoadCommands() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	loadComplete := make(chan struct{})
-	errChan := make(chan error, 1)
-
-	go func() {
-		defer close(loadComplete)
-		defer close(errChan)
-
-		commands := make([]*types.Command, 0, len(registry.Commands))
-		nameMap := make(map[*types.Command]string)
-		for name, cmd := range registry.Commands {
-			commands = append(commands, cmd)
-			nameMap[cmd] = name
+	commands := make([]*discordgo.ApplicationCommand, 0, len(registry.Commands))
+	for name, cmd := range registry.Commands {
+		command := &discordgo.ApplicationCommand{
+			Name:        cmd.Name,
+			Description: cmd.Description,
+			Options:     make([]*discordgo.ApplicationCommandOption, 0, len(cmd.Options)),
 		}
 
-		var wg sync.WaitGroup
-		semaphore := make(chan struct{}, 2) // Reduzido para 2 comandos simultâneos
-		registrationErrors := make(chan error, len(commands))
-
-		for _, cmd := range commands {
-			select {
-			case <-ctx.Done():
-				errChan <- fmt.Errorf("command registration timed out")
-				return
-			default:
-				wg.Add(1)
-				go func(cmd *types.Command) {
-					defer wg.Done()
-					semaphore <- struct{}{}
-					defer func() { <-semaphore }()
-
-					name := nameMap[cmd]
-					if err := h.registerCommand(name, cmd); err != nil {
-						registrationErrors <- fmt.Errorf("failed to register %s: %v", name, err)
-					} else {
-						h.logger.Info(fmt.Sprintf("Registered command: %s", name))
-					}
-					time.Sleep(1 * time.Second) // Aumentado para 1 segundo entre registros
-				}(cmd)
-			}
+		for _, opt := range cmd.Options {
+			command.Options = append(command.Options, &discordgo.ApplicationCommandOption{
+				Name:        opt.Name,
+				Description: opt.Description,
+				Type:        opt.Type,
+				Required:    opt.Required,
+				Choices:     opt.Choices,
+			})
 		}
 
-		wgDone := make(chan struct{})
-		go func() {
-			wg.Wait()
-			close(wgDone)
-		}()
-
-		select {
-		case <-ctx.Done():
-			errChan <- fmt.Errorf("command registration timed out")
-		case <-wgDone:
-			close(registrationErrors)
-			var errors []error
-			for err := range registrationErrors {
-				errors = append(errors, err)
-			}
-			if len(errors) > 0 {
-				errChan <- fmt.Errorf("failed to register some commands: %v", errors)
-			}
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("command loading timed out after %v", time.Since(startTime))
-	case err := <-errChan:
-		if err != nil {
-			return fmt.Errorf("error loading commands: %v", err)
-		}
-	case <-loadComplete:
-		h.logger.Info(fmt.Sprintf("Successfully loaded all commands in %v", time.Since(startTime)))
+		commands = append(commands, command)
+		h.commandMutex.Lock()
+		h.commands[name] = cmd
+		h.commandMutex.Unlock()
 	}
-
-	return nil
-}
-
-func (h *Handler) registerCommand(name string, cmd *types.Command) error {
-	options := make([]*discordgo.ApplicationCommandOption, 0, len(cmd.Options))
-	for _, opt := range cmd.Options {
-		options = append(options, &discordgo.ApplicationCommandOption{
-			Name:        opt.Name,
-			Description: opt.Description,
-			Type:        opt.Type,
-			Required:    opt.Required,
-			Choices:     opt.Choices,
-		})
-	}
-
-	commandCreate := &discordgo.ApplicationCommand{
-		Name:        cmd.Name,
-		Description: cmd.Description,
-		Options:     options,
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	done := make(chan error, 1)
 	go func() {
-		defer close(done)
-		for i := 0; i < 3; i++ { // Sistema de retry
-			_, err := h.session.ApplicationCommandCreate(
-				h.config.Discord.ClientID,
-				h.config.Discord.GuildID,
-				commandCreate,
-			)
-			if err == nil {
-				done <- nil
-				return
-			}
-			if i < 2 { // Se não for a última tentativa
-				time.Sleep(time.Duration(i+1) * 2 * time.Second)
-			} else {
-				done <- err
-			}
-		}
+		_, err := h.session.ApplicationCommandBulkOverwrite(
+			h.config.Discord.ClientID,
+			h.config.Discord.GuildID,
+			commands,
+		)
+		done <- err
+		close(done)
 	}()
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("command registration timed out for %s", name)
+		return fmt.Errorf("command registration timed out after %v", time.Since(startTime))
 	case err := <-done:
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to register commands: %v", err)
 		}
+		h.logger.Info(fmt.Sprintf("Successfully registered %d commands in %v", len(commands), time.Since(startTime)))
+		return nil
 	}
-
-	h.commandMutex.Lock()
-	h.commands[name] = cmd
-	h.commandMutex.Unlock()
-
-	return nil
 }
 
 func (h *Handler) HandleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
