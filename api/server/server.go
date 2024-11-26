@@ -10,13 +10,20 @@ type Server struct {
 }
 
 func NewServer() *Server {
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+
 	return &Server{
-		router: gin.Default(),
+		router: router,
 	}
 }
 
 func (s *Server) SetupRoutes() {
-	routes.SetupRiotRoutes(s.router)
+	routes.SetupRoutes(s.router)
 }
 
 func (s *Server) Start(addr string) error {

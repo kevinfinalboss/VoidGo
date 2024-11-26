@@ -5,7 +5,10 @@ import (
 	"github.com/kevinfinalboss/Void/api/controllers"
 )
 
-func SetupRiotRoutes(router *gin.Engine) {
+func SetupRoutes(router *gin.Engine) {
 	riotController := controllers.NewRiotController()
+	healthController := controllers.NewHealthController()
+
 	router.GET("/riot.txt", riotController.ServeRiotTxt)
+	router.GET("/health", healthController.CheckHealth)
 }
