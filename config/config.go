@@ -28,6 +28,11 @@ type Config struct {
 		BasePath string `yaml:"base_path"`
 	} `yaml:"server"`
 
+	Riot struct {
+		APIKey string `yaml:"api_key"`
+		Region string `yaml:"default_region"`
+	} `yaml:"riot"`
+
 	Groq struct {
 		APIKey string `yaml:"api_key"`
 	} `yaml:"groq"`

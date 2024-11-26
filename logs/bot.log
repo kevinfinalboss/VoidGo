@@ -600,3 +600,164 @@
 2024/11/26 09:35:37 logger.go:73: INFO: Bot started successfully in sharded mode
 2024/11/26 09:36:19 logger.go:73: INFO: Shutting down...
 2024/11/26 09:37:02 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:13:06 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:13:06 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:13:07 logger.go:73: INFO: Starting bot...
+2024/11/26 10:13:07 logger.go:73: INFO: Starting bot...
+2024/11/26 10:13:07 logger.go:73: INFO: Loading commands...
+2024/11/26 10:13:48 logger.go:73: INFO: Registered command: ping
+2024/11/26 10:13:49 logger.go:73: INFO: Registered command: qrcode
+2024/11/26 10:13:49 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:13:50 logger.go:73: INFO: Registered command: convert-webm
+2024/11/26 10:13:50 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:14:09 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:14:09 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:14:10 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:14:10 logger.go:73: INFO: Registered command: config
+2024/11/26 10:14:11 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:14:29 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:14:30 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:14:30 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:14:30 logger.go:73: INFO: Loaded 13 commands successfully
+2024/11/26 10:14:30 logger.go:73: INFO: Loading events...
+2024/11/26 10:14:30 logger.go:73: INFO: Found event in events\ready\ready.go
+2024/11/26 10:14:30 logger.go:73: INFO: Events loaded successfully
+2024/11/26 10:14:31 logger.go:73: INFO: Logged in as: Devil#8657
+2024/11/26 10:14:31 logger.go:73: INFO: Session setup completed for shard  
+2024/11/26 10:14:31 logger.go:73: INFO: Bot is in 1 guilds
+2024/11/26 10:14:31 logger.go:73: INFO: Session setup completed for shard 
+2024/11/26 10:14:31 logger.go:73: INFO: Bot started successfully in sharded mode
+2024/11/26 10:18:47 logger.go:73: INFO: Shutting down...
+2024/11/26 10:19:31 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:23:30 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:23:30 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:23:30 logger.go:73: INFO: Starting bot...
+2024/11/26 10:23:30 logger.go:73: INFO: Starting bot...
+2024/11/26 10:23:30 logger.go:73: INFO: Loading commands...
+2024/11/26 10:23:31 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:23:32 logger.go:73: INFO: Registered command: ping
+2024/11/26 10:23:32 logger.go:73: INFO: Registered command: qrcode
+2024/11/26 10:23:33 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:23:33 logger.go:73: INFO: Registered command: convert-webm
+2024/11/26 10:23:52 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:23:52 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:23:53 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:23:53 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:23:53 logger.go:73: INFO: Registered command: config
+2024/11/26 10:24:12 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:24:12 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:24:13 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:24:13 logger.go:73: INFO: Loaded 13 commands successfully
+2024/11/26 10:24:13 logger.go:73: INFO: Loading events...
+2024/11/26 10:24:13 logger.go:73: INFO: Found event in events\ready\ready.go
+2024/11/26 10:24:13 logger.go:73: INFO: Events loaded successfully
+2024/11/26 10:24:14 logger.go:73: INFO: Session setup completed for shard  
+2024/11/26 10:24:14 logger.go:73: INFO: Logged in as: Devil#8657
+2024/11/26 10:24:14 logger.go:73: INFO: Bot is in 1 guilds
+2024/11/26 10:24:14 logger.go:73: INFO: Session setup completed for shard 
+2024/11/26 10:24:14 logger.go:73: INFO: Bot started successfully in sharded mode
+2024/11/26 10:25:17 logger.go:79: ERROR: Error executing command champion-rotation: HTTP 400 Bad Request, {"message": "Invalid Form Body", "code": 50035, "errors": {"embeds": {"0": {"fields": {"0": {"value": {"_errors": [{"code": "BASE_TYPE_MAX_LENGTH", "message": "Must be 1024 or fewer in length."}]}}, "1": {"value": {"_errors": [{"code": "BASE_TYPE_MAX_LENGTH", "message": "Must be 1024 or fewer in length."}]}}}}}}}
+2024/11/26 10:26:15 logger.go:73: INFO: Shutting down...
+2024/11/26 10:26:58 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:30:44 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:30:44 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:30:45 logger.go:73: INFO: Starting bot...
+2024/11/26 10:30:45 logger.go:73: INFO: Starting bot...
+2024/11/26 10:30:45 logger.go:73: INFO: Loading commands...
+2024/11/26 10:30:46 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:30:46 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:30:47 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:30:47 logger.go:73: INFO: Registered command: qrcode
+2024/11/26 10:30:48 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:31:07 logger.go:73: INFO: Registered command: convert-webm
+2024/11/26 10:31:07 logger.go:73: INFO: Registered command: config
+2024/11/26 10:31:08 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:31:09 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:31:09 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:31:27 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:31:28 logger.go:73: INFO: Registered command: ping
+2024/11/26 10:31:28 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:31:28 logger.go:73: INFO: Loaded 13 commands successfully
+2024/11/26 10:31:28 logger.go:73: INFO: Loading events...
+2024/11/26 10:31:28 logger.go:73: INFO: Found event in events\ready\ready.go
+2024/11/26 10:31:28 logger.go:73: INFO: Events loaded successfully
+2024/11/26 10:31:29 logger.go:73: INFO: Logged in as: Devil#8657
+2024/11/26 10:31:29 logger.go:73: INFO: Session setup completed for shard  
+2024/11/26 10:31:29 logger.go:73: INFO: Bot is in 1 guilds
+2024/11/26 10:31:29 logger.go:73: INFO: Session setup completed for shard 
+2024/11/26 10:31:29 logger.go:73: INFO: Bot started successfully in sharded mode
+2024/11/26 10:33:11 logger.go:73: INFO: Shutting down...
+2024/11/26 10:33:55 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:35:43 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:35:43 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:35:43 logger.go:73: INFO: Starting bot...
+2024/11/26 10:35:43 logger.go:73: INFO: Starting bot...
+2024/11/26 10:35:43 logger.go:73: INFO: Loading commands...
+2024/11/26 10:35:44 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:35:44 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:35:45 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:35:45 logger.go:73: INFO: Registered command: ping
+2024/11/26 10:35:46 logger.go:73: INFO: Registered command: qrcode
+2024/11/26 10:36:05 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:36:05 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:36:06 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:36:06 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:36:07 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:36:25 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:36:27 logger.go:73: INFO: Registered command: convert-webm
+2024/11/26 10:36:27 logger.go:73: INFO: Registered command: config
+2024/11/26 10:36:27 logger.go:73: INFO: Loaded 13 commands successfully
+2024/11/26 10:36:27 logger.go:73: INFO: Loading events...
+2024/11/26 10:36:27 logger.go:73: INFO: Found event in events\ready\ready.go
+2024/11/26 10:36:27 logger.go:73: INFO: Events loaded successfully
+2024/11/26 10:36:28 logger.go:73: INFO: Session setup completed for shard  
+2024/11/26 10:36:28 logger.go:73: INFO: Logged in as: Devil#8657
+2024/11/26 10:36:28 logger.go:73: INFO: Bot is in 1 guilds
+2024/11/26 10:36:28 logger.go:73: INFO: Session setup completed for shard 
+2024/11/26 10:36:28 logger.go:73: INFO: Bot started successfully in sharded mode
+2024/11/26 10:42:18 logger.go:73: INFO: Shutting down...
+2024/11/26 10:43:02 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:43:32 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:43:32 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:43:33 logger.go:73: INFO: Starting bot...
+2024/11/26 10:43:33 logger.go:73: INFO: Starting bot...
+2024/11/26 10:43:33 logger.go:73: INFO: Loading commands...
+2024/11/26 10:43:34 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:43:34 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:43:35 logger.go:73: INFO: Registered command: qrcode
+2024/11/26 10:43:35 logger.go:73: INFO: Registered command: convert-webm
+2024/11/26 10:43:36 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:43:54 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:43:54 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:43:55 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:43:55 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:43:56 logger.go:73: INFO: Registered command: config
+2024/11/26 10:44:14 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:44:15 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:44:15 logger.go:73: INFO: Registered command: ping
+2024/11/26 10:44:15 logger.go:73: INFO: Loaded 13 commands successfully
+2024/11/26 10:44:15 logger.go:73: INFO: Loading events...
+2024/11/26 10:44:15 logger.go:73: INFO: Found event in events\ready\ready.go
+2024/11/26 10:44:15 logger.go:73: INFO: Events loaded successfully
+2024/11/26 10:44:16 logger.go:73: INFO: Session setup completed for shard  
+2024/11/26 10:44:16 logger.go:73: INFO: Logged in as: Devil#8657
+2024/11/26 10:44:16 logger.go:73: INFO: Bot is in 1 guilds
+2024/11/26 10:44:16 logger.go:73: INFO: Session setup completed for shard 
+2024/11/26 10:44:16 logger.go:73: INFO: Bot started successfully in sharded mode
+2024/11/26 10:49:48 logger.go:73: INFO: Shutting down...
+2024/11/26 10:50:32 logger.go:73: INFO: Bot stopped successfully!
+2024/11/26 10:52:58 logger.go:73: INFO: Initializing bot...
+2024/11/26 10:52:58 logger.go:73: INFO: Starting HTTP server...
+2024/11/26 10:52:58 logger.go:73: INFO: Starting bot...
+2024/11/26 10:52:58 logger.go:73: INFO: Starting bot...
+2024/11/26 10:52:58 logger.go:73: INFO: Loading commands...
+2024/11/26 10:52:59 logger.go:73: INFO: Registered command: uptime
+2024/11/26 10:53:00 logger.go:73: INFO: Registered command: extract-audio
+2024/11/26 10:53:00 logger.go:73: INFO: Registered command: convert-document
+2024/11/26 10:53:01 logger.go:73: INFO: Registered command: image-info
+2024/11/26 10:53:01 logger.go:73: INFO: Registered command: resize-image
+2024/11/26 10:53:20 logger.go:73: INFO: Registered command: webp-to-gif
+2024/11/26 10:53:21 logger.go:73: INFO: Registered command: champion-rotation
+2024/11/26 10:53:21 logger.go:73: INFO: Registered command: ai
+2024/11/26 10:53:21 logger.go:73: INFO: Registered command: blur-image
+2024/11/26 10:53:22 logger.go:73: INFO: Registered command: ping

@@ -33,9 +33,9 @@ func NewServer(cfg *config.Config) *Server {
 func (s *Server) SetupRoutes() {
 	if s.config.Server.BasePath != "" {
 		group := s.router.Group(s.config.Server.BasePath)
-		routes.SetupRoutes(group)
+		routes.SetupRoutes(group, s.config)
 	} else {
-		routes.SetupRoutes(s.router)
+		routes.SetupRoutes(s.router, s.config)
 	}
 }
 
