@@ -31,6 +31,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 2)
+	doneChan := make(chan struct{})
 
 	srv := server.NewServer(cfg)
 	if srv == nil {
@@ -66,7 +67,7 @@ func main() {
 		defer wg.Done()
 		logger.Info("Starting bot...")
 
-		botCtx, botCancel := context.WithCancel(mainCtx)
+		botCtx, botCancel := context.WithTimeout(mainCtx, 180*time.Second)
 		defer botCancel()
 
 		go func() {
@@ -76,7 +77,20 @@ func main() {
 		if err := discordBot.Start(); err != nil {
 			errChan <- err
 			mainCancel()
+			return
 		}
+
+		select {
+		case <-mainCtx.Done():
+		case <-botCtx.Done():
+			errChan <- botCtx.Err()
+			mainCancel()
+		}
+	}()
+
+	go func() {
+		wg.Wait()
+		close(doneChan)
 	}()
 
 	sigChan := make(chan os.Signal, 1)
@@ -89,39 +103,56 @@ func main() {
 	case err := <-errChan:
 		logger.Error("Error during execution: " + err.Error())
 		mainCancel()
-	case <-mainCtx.Done():
-		logger.Info("Context cancelled, initiating shutdown...")
+	case <-doneChan:
+		logger.Info("All services completed")
+		mainCancel()
 	}
 
 	logger.Info("Shutting down...")
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer shutdownCancel()
 
-	shutdownChan := make(chan struct{})
+	shutdownComplete := make(chan struct{})
 	go func() {
-		defer close(shutdownChan)
-		done := make(chan struct{})
+		defer close(shutdownComplete)
+
+		stopTimeout := time.After(90 * time.Second)
+		stopDone := make(chan struct{})
+
 		go func() {
-			wg.Wait()
-			close(done)
+			if err := discordBot.Stop(); err != nil {
+				logger.Error("Error during bot shutdown: " + err.Error())
+			}
+			close(stopDone)
 		}()
 
 		select {
-		case <-shutdownCtx.Done():
-			logger.Error("Timeout waiting for goroutines to finish")
-		case <-done:
-			logger.Info("All goroutines finished successfully")
+		case <-stopTimeout:
+			logger.Error("Bot shutdown timed out")
+		case <-stopDone:
+			logger.Info("Bot shutdown completed")
 		}
-		if err := discordBot.Stop(); err != nil {
-			logger.Error("Error during bot shutdown: " + err.Error())
+
+		wgTimeout := time.After(30 * time.Second)
+		wgDone := make(chan struct{})
+
+		go func() {
+			wg.Wait()
+			close(wgDone)
+		}()
+
+		select {
+		case <-wgTimeout:
+			logger.Error("Timeout waiting for goroutines to finish")
+		case <-wgDone:
+			logger.Info("All goroutines finished successfully")
 		}
 	}()
 
 	select {
 	case <-shutdownCtx.Done():
 		logger.Error("Global shutdown timed out")
-	case <-shutdownChan:
+	case <-shutdownComplete:
 		logger.Info("Shutdown completed successfully")
 	}
 }

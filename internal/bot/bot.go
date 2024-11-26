@@ -39,36 +39,51 @@ func New(cfg *config.Config, l *logger.Logger) (*Bot, error) {
 		return nil, errors.New("discord token is required")
 	}
 
-	db, err := database.NewMongoDB(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %v", err)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	guildHandler := guild.NewHandler(db, l)
-	if guildHandler == nil {
-		if db != nil {
-			db.Close()
+	dbChan := make(chan *database.MongoDB)
+	errChan := make(chan error)
+
+	go func() {
+		db, err := database.NewMongoDB(cfg)
+		if err != nil {
+			errChan <- fmt.Errorf("failed to initialize database: %v", err)
+			return
 		}
-		return nil, errors.New("failed to create guild handler")
-	}
+		dbChan <- db
+	}()
 
-	bot := &Bot{
-		config:       cfg,
-		logger:       l,
-		db:           db,
-		sessions:     make([]*discordgo.Session, 0),
-		guildHandler: guildHandler,
-	}
+	select {
+	case err := <-errChan:
+		return nil, err
+	case db := <-dbChan:
+		guildHandler := guild.NewHandler(db, l)
+		if guildHandler == nil {
+			db.Close()
+			return nil, errors.New("failed to create guild handler")
+		}
 
-	return bot, nil
+		return &Bot{
+			config:       cfg,
+			logger:       l,
+			db:           db,
+			sessions:     make([]*discordgo.Session, 0),
+			guildHandler: guildHandler,
+		}, nil
+	case <-ctx.Done():
+		return nil, errors.New("timeout initializing bot dependencies")
+	}
 }
 
 func (b *Bot) setupHandlers(session *discordgo.Session) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
 	if session == nil {
 		return errors.New("session cannot be nil")
 	}
 
-	// Verificações de dependências necessárias
 	if b.config == nil || b.logger == nil || b.db == nil || b.guildHandler == nil {
 		return errors.New("bot dependencies not properly initialized")
 	}
@@ -76,46 +91,71 @@ func (b *Bot) setupHandlers(session *discordgo.Session) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Inicializar command handler
-	if b.cmdHandler == nil {
-		cmdHandler := commands.NewHandler(session, b.config, b.logger)
-		if cmdHandler == nil {
-			return errors.New("failed to create command handler")
+	errChan := make(chan error, 2)
+	setupDone := make(chan struct{})
+
+	go func() {
+		defer close(setupDone)
+
+		if b.cmdHandler == nil {
+			cmdHandler := commands.NewHandler(session, b.config, b.logger)
+			if cmdHandler == nil {
+				errChan <- errors.New("failed to create command handler")
+				return
+			}
+			b.cmdHandler = cmdHandler
 		}
-		b.cmdHandler = cmdHandler
-	}
 
-	// Inicializar event handler
-	if b.eventHandler == nil {
-		eventHandler := events.NewHandler(session, b.config, b.logger)
-		if eventHandler == nil {
-			return errors.New("failed to create event handler")
+		if b.eventHandler == nil {
+			eventHandler := events.NewHandler(session, b.config, b.logger)
+			if eventHandler == nil {
+				errChan <- errors.New("failed to create event handler")
+				return
+			}
+			b.eventHandler = eventHandler
 		}
-		b.eventHandler = eventHandler
+
+		admin.SetDatabase(b.db)
+
+		session.AddHandler(b.cmdHandler.HandleCommand)
+		session.AddHandler(b.guildHandler.HandleGuildCreate)
+		session.AddHandler(b.guildHandler.HandleGuildDelete)
+		session.AddHandler(admin.HandleConfigButton)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			if err := b.cmdHandler.LoadCommands(); err != nil {
+				errChan <- fmt.Errorf("failed to load commands: %v", err)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			if err := b.eventHandler.LoadEvents(); err != nil {
+				errChan <- fmt.Errorf("failed to load events: %v", err)
+			}
+		}()
+
+		wg.Wait()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return errors.New("setup handlers timed out")
+	case err := <-errChan:
+		return err
+	case <-setupDone:
+		return nil
 	}
-
-	// Configurar database para admin
-	admin.SetDatabase(b.db)
-
-	// Adicionar handlers
-	session.AddHandler(b.cmdHandler.HandleCommand)
-	session.AddHandler(b.guildHandler.HandleGuildCreate)
-	session.AddHandler(b.guildHandler.HandleGuildDelete)
-	session.AddHandler(admin.HandleConfigButton)
-
-	// Carregar comandos e eventos
-	if err := b.cmdHandler.LoadCommands(); err != nil {
-		return fmt.Errorf("failed to load commands: %v", err)
-	}
-
-	if err := b.eventHandler.LoadEvents(); err != nil {
-		return fmt.Errorf("failed to load events: %v", err)
-	}
-
-	return nil
 }
 
 func (b *Bot) Start() error {
+	startCtx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
 	if b == nil {
 		return errors.New("bot instance is nil")
 	}
@@ -128,11 +168,11 @@ func (b *Bot) Start() error {
 	isSharded := b.config.Discord.Sharding.Enabled
 	b.mu.Unlock()
 
-	startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	errChan := make(chan error, 1)
+	startDone := make(chan struct{})
+
 	go func() {
+		defer close(startDone)
 		if isSharded {
 			errChan <- b.startSharded()
 		} else {
@@ -141,14 +181,19 @@ func (b *Bot) Start() error {
 	}()
 
 	select {
-	case err := <-errChan:
-		return err
 	case <-startCtx.Done():
 		return errors.New("bot startup timed out")
+	case err := <-errChan:
+		return err
+	case <-startDone:
+		return nil
 	}
 }
 
 func (b *Bot) startSingle() error {
+	sessionCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	if b == nil || b.config == nil {
 		return errors.New("invalid bot state")
 	}
@@ -162,13 +207,22 @@ func (b *Bot) startSingle() error {
 	b.sessions = []*discordgo.Session{session}
 	b.mu.Unlock()
 
-	if err := b.setupSession(session, 0, 1); err != nil {
-		b.logger.Error("Failed to setup session: " + err.Error())
-		return err
-	}
+	setupDone := make(chan error, 1)
+	go func() {
+		setupDone <- b.setupSession(session, 0, 1)
+	}()
 
-	b.logger.Info("Bot started successfully in single mode")
-	return nil
+	select {
+	case <-sessionCtx.Done():
+		return errors.New("session setup timed out")
+	case err := <-setupDone:
+		if err != nil {
+			b.logger.Error("Failed to setup session: " + err.Error())
+			return err
+		}
+		b.logger.Info("Bot started successfully in single mode")
+		return nil
+	}
 }
 
 func (b *Bot) startSharded() error {
@@ -187,11 +241,15 @@ func (b *Bot) startSharded() error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, totalShards)
+	semaphore := make(chan struct{}, 5)
 
 	for i := 0; i < totalShards; i++ {
 		wg.Add(1)
 		go func(shardID int) {
 			defer wg.Done()
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
 			session, err := discordgo.New("Bot " + b.config.Discord.Token)
 			if err != nil {
 				errChan <- fmt.Errorf("failed to create discord session for shard %d: %v", shardID, err)
@@ -247,6 +305,9 @@ func (b *Bot) setupSession(session *discordgo.Session, shardID, totalShards int)
 }
 
 func (b *Bot) Stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -256,19 +317,8 @@ func (b *Bot) Stop() error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(b.sessions)+2)
+	done := make(chan struct{})
 
-	// Cleanup command handler
-	if b.cmdHandler != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := b.cmdHandler.DeleteCommands(); err != nil {
-				errChan <- fmt.Errorf("failed to delete commands: %v", err)
-			}
-		}()
-	}
-
-	// Cleanup database
 	if b.db != nil {
 		wg.Add(1)
 		go func() {
@@ -279,7 +329,6 @@ func (b *Bot) Stop() error {
 		}()
 	}
 
-	// Close all sessions
 	for _, session := range b.sessions {
 		if session != nil {
 			wg.Add(1)
@@ -292,17 +341,23 @@ func (b *Bot) Stop() error {
 		}
 	}
 
-	wg.Wait()
-	close(errChan)
+	go func() {
+		wg.Wait()
+		close(done)
+		close(errChan)
+	}()
 
-	var errors []error
-	for err := range errChan {
-		errors = append(errors, err)
+	select {
+	case <-ctx.Done():
+		return errors.New("shutdown timed out")
+	case <-done:
+		var errors []error
+		for err := range errChan {
+			errors = append(errors, err)
+		}
+		if len(errors) > 0 {
+			return fmt.Errorf("errors during shutdown: %v", errors)
+		}
+		return nil
 	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("errors during shutdown: %v", errors)
-	}
-
-	return nil
 }
