@@ -23,7 +23,7 @@ func main() {
 		log.Fatal("Failed to initialize logger")
 	}
 
-	srv := server.NewServer()
+	srv := server.NewServer(cfg)
 	if srv == nil {
 		logger.Fatal("Failed to create server")
 	}
@@ -31,7 +31,7 @@ func main() {
 	srv.SetupRoutes()
 	go func() {
 		logger.Info("Starting HTTP server...")
-		if err := srv.Start(":80"); err != nil {
+		if err := srv.Start(); err != nil {
 			logger.Error("HTTP server error: " + err.Error())
 		}
 	}()

@@ -1,3 +1,4 @@
+// config/config.go
 package config
 
 import (
@@ -19,6 +20,13 @@ type Config struct {
 			TotalShards int  `yaml:"total_shards"`
 		} `yaml:"sharding"`
 	} `yaml:"discord"`
+
+	Server struct {
+		Port     int    `yaml:"port"`
+		Mode     string `yaml:"mode"` // "debug", "release", "test"
+		Host     string `yaml:"host"`
+		BasePath string `yaml:"base_path"`
+	} `yaml:"server"`
 
 	Groq struct {
 		APIKey string `yaml:"api_key"`
@@ -66,6 +74,16 @@ func Load(path string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(file, &cfg); err != nil {
 		return nil, err
+	}
+
+	if cfg.Server.Port == 0 {
+		cfg.Server.Port = 80
+	}
+	if cfg.Server.Mode == "" {
+		cfg.Server.Mode = "release"
+	}
+	if cfg.Server.Host == "" {
+		cfg.Server.Host = "0.0.0.0"
 	}
 
 	cfg.BotStartTime = time.Now()

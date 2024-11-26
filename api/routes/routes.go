@@ -1,3 +1,4 @@
+// api/routes/routes.go
 package routes
 
 import (
@@ -5,10 +6,12 @@ import (
 	"github.com/kevinfinalboss/Void/api/controllers"
 )
 
-func SetupRoutes(router *gin.Engine) {
+func SetupRoutes(r gin.IRouter) {
+	// Controladores
 	riotController := controllers.NewRiotController()
 	healthController := controllers.NewHealthController()
 
-	router.GET("/riot.txt", riotController.ServeRiotTxt)
-	router.GET("/health", healthController.CheckHealth)
+	// Rotas públicas
+	r.GET("/riot.txt", riotController.ServeRiotTxt)
+	r.GET("/health", healthController.CheckHealth)
 }
