@@ -1,7 +1,10 @@
 package bot
 
 import (
+	"context"
 	"errors"
+	"sync"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/kevinfinalboss/Void/commands/admin"
@@ -21,17 +24,12 @@ type Bot struct {
 	eventHandler *events.Handler
 	db           *database.MongoDB
 	guildHandler *guild.Handler
+	mu           sync.RWMutex
 }
 
 func New(cfg *config.Config, logger *logger.Logger) (*Bot, error) {
-	if cfg == nil {
-		return nil, errors.New("config cannot be nil")
-	}
-	if logger == nil {
-		return nil, errors.New("logger cannot be nil")
-	}
-	if cfg.Discord.Token == "" {
-		return nil, errors.New("discord token is required")
+	if cfg == nil || logger == nil || cfg.Discord.Token == "" {
+		return nil, errors.New("invalid configuration")
 	}
 
 	db, err := database.NewMongoDB(cfg)
@@ -39,30 +37,40 @@ func New(cfg *config.Config, logger *logger.Logger) (*Bot, error) {
 		return nil, err
 	}
 
-	bot := &Bot{
+	return &Bot{
 		config:   cfg,
 		logger:   logger,
 		db:       db,
 		sessions: make([]*discordgo.Session, 0),
-	}
-
-	return bot, nil
+	}, nil
 }
 
 func (b *Bot) Start() error {
-	if b == nil {
-		return errors.New("bot instance is nil")
-	}
-	if b.config == nil {
-		return errors.New("bot config is nil")
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b == nil || b.config == nil {
+		return errors.New("invalid bot instance")
 	}
 
-	b.logger.Info("Starting bot...")
+	startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	if b.config.Discord.Sharding.Enabled {
-		return b.startSharded()
+	done := make(chan error, 1)
+	go func() {
+		if b.config.Discord.Sharding.Enabled {
+			done <- b.startSharded()
+		} else {
+			done <- b.startSingle()
+		}
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-startCtx.Done():
+		return errors.New("bot startup timed out")
 	}
-	return b.startSingle()
 }
 
 func (b *Bot) startSingle() error {
@@ -72,43 +80,51 @@ func (b *Bot) startSingle() error {
 	}
 
 	b.sessions = []*discordgo.Session{session}
-	if err := b.setupSession(session, 0, 1); err != nil {
-		b.logger.Error("Failed to setup session: " + err.Error())
-		return err
-	}
-
-	b.logger.Info("Bot started successfully in single mode")
-	return nil
+	return b.setupSession(session, 0, 1)
 }
 
 func (b *Bot) startSharded() error {
 	totalShards := b.config.Discord.Sharding.TotalShards
 	if totalShards <= 0 {
-		return errors.New("invalid total shards count")
+		return errors.New("invalid shard count")
 	}
 
 	b.sessions = make([]*discordgo.Session, totalShards)
+	var wg sync.WaitGroup
+	errChan := make(chan error, totalShards)
 
 	for i := 0; i < totalShards; i++ {
-		session, err := discordgo.New("Bot " + b.config.Discord.Token)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(shardID int) {
+			defer wg.Done()
+			session, err := discordgo.New("Bot " + b.config.Discord.Token)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		b.sessions[i] = session
-		if err := b.setupSession(session, i, totalShards); err != nil {
-			b.logger.Error("Failed to setup shard " + string(i) + ": " + err.Error())
+			b.sessions[shardID] = session
+			if err := b.setupSession(session, shardID, totalShards); err != nil {
+				errChan <- err
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
 			return err
 		}
 	}
 
-	b.logger.Info("Bot started successfully in sharded mode")
 	return nil
 }
 
 func (b *Bot) setupSession(session *discordgo.Session, shardID, totalShards int) error {
 	if session == nil {
-		return errors.New("session cannot be nil")
+		return errors.New("invalid session")
 	}
 
 	session.ShardID = shardID
@@ -117,18 +133,11 @@ func (b *Bot) setupSession(session *discordgo.Session, shardID, totalShards int)
 
 	if shardID == 0 {
 		b.cmdHandler = commands.NewHandler(session, b.config, b.logger)
-		if b.cmdHandler == nil {
-			return errors.New("failed to create command handler")
-		}
-
 		b.eventHandler = events.NewHandler(session, b.config, b.logger)
-		if b.eventHandler == nil {
-			return errors.New("failed to create event handler")
-		}
-
 		b.guildHandler = guild.NewHandler(b.db, b.logger)
-		if b.guildHandler == nil {
-			return errors.New("failed to create guild handler")
+
+		if b.cmdHandler == nil || b.eventHandler == nil || b.guildHandler == nil {
+			return errors.New("failed to initialize handlers")
 		}
 
 		admin.SetDatabase(b.db)
@@ -147,40 +156,63 @@ func (b *Bot) setupSession(session *discordgo.Session, shardID, totalShards int)
 	session.AddHandler(b.guildHandler.HandleGuildDelete)
 	session.AddHandler(admin.HandleConfigButton)
 
-	err := session.Open()
-	if err != nil {
-		return err
-	}
-
-	b.logger.Info("Session setup completed for shard " + string(shardID))
-	return nil
+	return session.Open()
 }
 
 func (b *Bot) Stop() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	if b == nil {
-		return errors.New("bot instance is nil")
+		return errors.New("invalid bot instance")
 	}
 
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(b.sessions)+2)
+
 	if b.cmdHandler != nil {
-		if err := b.cmdHandler.DeleteCommands(); err != nil {
-			b.logger.Error("Error deleting commands: " + err.Error())
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := b.cmdHandler.DeleteCommands(); err != nil {
+				errChan <- err
+			}
+		}()
 	}
 
 	if b.db != nil {
-		if err := b.db.Close(); err != nil {
-			b.logger.Error("Error closing MongoDB connection: " + err.Error())
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := b.db.Close(); err != nil {
+				errChan <- err
+			}
+		}()
 	}
 
 	for _, session := range b.sessions {
 		if session != nil {
-			if err := session.Close(); err != nil {
-				b.logger.Error("Error closing session: " + err.Error())
-			}
+			wg.Add(1)
+			go func(s *discordgo.Session) {
+				defer wg.Done()
+				if err := s.Close(); err != nil {
+					errChan <- err
+				}
+			}(session)
 		}
 	}
 
-	b.logger.Info("Bot stopped successfully!")
+	wg.Wait()
+	close(errChan)
+
+	var errors []error
+	for err := range errChan {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return errors[0]
+	}
+
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 
 var (
 	assetsPath = "assets/champions/icons"
-	baseURL    = "https://voidgo.kevindev.com.br/assets/champions/icons" // URL base onde os assets serão servidos
+	baseURL    = "https://voidgo.kevindev.com.br/assets/champions/icons"
 )
 
 func init() {
