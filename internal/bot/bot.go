@@ -181,6 +181,6 @@ func (b *Bot) Stop() error {
 		}
 	}
 
-	b.logger.Info("Bot stopped successfully")
+	b.logger.Info("Bot stopped successfully!")
 	return nil
 }
