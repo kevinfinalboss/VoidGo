@@ -19,7 +19,6 @@ type Handler struct {
 	session      *discordgo.Session
 	config       *config.Config
 	logger       *logger.Logger
-	cooldowns    sync.Map
 	commandMutex sync.RWMutex
 }
 
@@ -36,7 +35,7 @@ func (h *Handler) LoadCommands() error {
 	startTime := time.Now()
 	h.logger.Info("Loading commands...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	loadComplete := make(chan struct{})
@@ -54,7 +53,7 @@ func (h *Handler) LoadCommands() error {
 		}
 
 		var wg sync.WaitGroup
-		semaphore := make(chan struct{}, 3)
+		semaphore := make(chan struct{}, 2) // Reduzido para 2 comandos simultâneos
 		registrationErrors := make(chan error, len(commands))
 
 		for _, cmd := range commands {
@@ -75,7 +74,7 @@ func (h *Handler) LoadCommands() error {
 					} else {
 						h.logger.Info(fmt.Sprintf("Registered command: %s", name))
 					}
-					time.Sleep(200 * time.Millisecond)
+					time.Sleep(1 * time.Second) // Aumentado para 1 segundo entre registros
 				}(cmd)
 			}
 		}
@@ -133,17 +132,28 @@ func (h *Handler) registerCommand(name string, cmd *types.Command) error {
 		Options:     options,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := h.session.ApplicationCommandCreate(
-			h.config.Discord.ClientID,
-			h.config.Discord.GuildID,
-			commandCreate,
-		)
-		done <- err
+		defer close(done)
+		for i := 0; i < 3; i++ { // Sistema de retry
+			_, err := h.session.ApplicationCommandCreate(
+				h.config.Discord.ClientID,
+				h.config.Discord.GuildID,
+				commandCreate,
+			)
+			if err == nil {
+				done <- nil
+				return
+			}
+			if i < 2 { // Se não for a última tentativa
+				time.Sleep(time.Duration(i+1) * 2 * time.Second)
+			} else {
+				done <- err
+			}
+		}
 	}()
 
 	select {
@@ -180,12 +190,13 @@ func (h *Handler) HandleCommand(s *discordgo.Session, i *discordgo.InteractionCr
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	done := make(chan error, 1)
 	go func() {
 		done <- cmd.Run(s, i, h.config)
+		close(done)
 	}()
 
 	select {
