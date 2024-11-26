@@ -31,7 +31,7 @@ func main() {
 	srv.SetupRoutes()
 	go func() {
 		logger.Info("Starting HTTP server...")
-		if err := srv.Start(":8080"); err != nil {
+		if err := srv.Start(":80"); err != nil {
 			logger.Error("HTTP server error: " + err.Error())
 		}
 	}()
