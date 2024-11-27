@@ -305,7 +305,7 @@ func (b *Bot) setupSession(session *discordgo.Session, shardID, totalShards int)
 }
 
 func (b *Bot) Stop() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 
 	b.mu.Lock()
@@ -315,19 +315,9 @@ func (b *Bot) Stop() error {
 		return errors.New("bot instance is nil")
 	}
 
+	// Fecha as sessões primeiro
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(b.sessions)+2)
-	done := make(chan struct{})
-
-	if b.db != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := b.db.Close(); err != nil {
-				errChan <- fmt.Errorf("failed to close database: %v", err)
-			}
-		}()
-	}
+	sessionErrors := make(chan error, len(b.sessions))
 
 	for _, session := range b.sessions {
 		if session != nil {
@@ -335,29 +325,43 @@ func (b *Bot) Stop() error {
 			go func(s *discordgo.Session) {
 				defer wg.Done()
 				if err := s.Close(); err != nil {
-					errChan <- fmt.Errorf("failed to close session: %v", err)
+					sessionErrors <- fmt.Errorf("failed to close session: %v", err)
 				}
 			}(session)
 		}
 	}
 
+	// Aguarda o fechamento das sessões com timeout
+	done := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(done)
-		close(errChan)
 	}()
 
 	select {
 	case <-ctx.Done():
-		return errors.New("shutdown timed out")
+		return errors.New("session shutdown timed out")
 	case <-done:
-		var errors []error
-		for err := range errChan {
-			errors = append(errors, err)
-		}
-		if len(errors) > 0 {
-			return fmt.Errorf("errors during shutdown: %v", errors)
-		}
-		return nil
+		// Continue com o fechamento do banco de dados
 	}
+
+	// Fecha o banco de dados por último
+	if b.db != nil {
+		if err := b.db.Close(); err != nil {
+			return fmt.Errorf("failed to close database: %v", err)
+		}
+	}
+
+	close(sessionErrors)
+
+	var errors []error
+	for err := range sessionErrors {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors during shutdown: %v", errors)
+	}
+
+	return nil
 }

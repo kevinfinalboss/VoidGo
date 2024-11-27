@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -31,7 +32,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 2)
-	doneChan := make(chan struct{})
+	shutdownChan := make(chan struct{})
 
 	srv := server.NewServer(cfg)
 	if srv == nil {
@@ -44,14 +45,24 @@ func main() {
 		defer wg.Done()
 		logger.Info("Starting HTTP server...")
 
-		serverCtx, serverCancel := context.WithCancel(mainCtx)
-		defer serverCancel()
-
 		go func() {
-			<-serverCtx.Done()
+			select {
+			case <-mainCtx.Done():
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				if err := srv.Shutdown(shutdownCtx); err != nil {
+					logger.Error("Server shutdown error: " + err.Error())
+				}
+			case <-shutdownChan:
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				if err := srv.Shutdown(shutdownCtx); err != nil {
+					logger.Error("Server shutdown error: " + err.Error())
+				}
+			}
 		}()
 
-		if err := srv.Start(); err != nil {
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 			mainCancel()
 		}
@@ -67,11 +78,15 @@ func main() {
 		defer wg.Done()
 		logger.Info("Starting bot...")
 
-		botCtx, botCancel := context.WithTimeout(mainCtx, 180*time.Second)
+		botCtx, botCancel := context.WithCancel(mainCtx)
 		defer botCancel()
 
 		go func() {
-			<-botCtx.Done()
+			select {
+			case <-botCtx.Done():
+			case <-shutdownChan:
+				botCancel()
+			}
 		}()
 
 		if err := discordBot.Start(); err != nil {
@@ -79,18 +94,6 @@ func main() {
 			mainCancel()
 			return
 		}
-
-		select {
-		case <-mainCtx.Done():
-		case <-botCtx.Done():
-			errChan <- botCtx.Err()
-			mainCancel()
-		}
-	}()
-
-	go func() {
-		wg.Wait()
-		close(doneChan)
 	}()
 
 	sigChan := make(chan os.Signal, 1)
@@ -99,60 +102,44 @@ func main() {
 	select {
 	case sig := <-sigChan:
 		logger.Info("Received signal: " + sig.String())
-		mainCancel()
 	case err := <-errChan:
 		logger.Error("Error during execution: " + err.Error())
-		mainCancel()
-	case <-doneChan:
-		logger.Info("All services completed")
-		mainCancel()
 	}
 
-	logger.Info("Shutting down...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer shutdownCancel()
+	logger.Info("Initiating shutdown sequence...")
+	close(shutdownChan)
 
-	shutdownComplete := make(chan struct{})
+	botShutdownCtx, botShutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer botShutdownCancel()
+
+	botDone := make(chan struct{})
 	go func() {
-		defer close(shutdownComplete)
-
-		stopTimeout := time.After(90 * time.Second)
-		stopDone := make(chan struct{})
-
-		go func() {
-			if err := discordBot.Stop(); err != nil {
-				logger.Error("Error during bot shutdown: " + err.Error())
-			}
-			close(stopDone)
-		}()
-
-		select {
-		case <-stopTimeout:
-			logger.Error("Bot shutdown timed out")
-		case <-stopDone:
-			logger.Info("Bot shutdown completed")
+		if err := discordBot.Stop(); err != nil {
+			logger.Error("Bot shutdown error: " + err.Error())
 		}
-
-		wgTimeout := time.After(30 * time.Second)
-		wgDone := make(chan struct{})
-
-		go func() {
-			wg.Wait()
-			close(wgDone)
-		}()
-
-		select {
-		case <-wgTimeout:
-			logger.Error("Timeout waiting for goroutines to finish")
-		case <-wgDone:
-			logger.Info("All goroutines finished successfully")
-		}
+		close(botDone)
 	}()
 
 	select {
-	case <-shutdownCtx.Done():
-		logger.Error("Global shutdown timed out")
-	case <-shutdownComplete:
-		logger.Info("Shutdown completed successfully")
+	case <-botShutdownCtx.Done():
+		logger.Error("Bot shutdown timed out")
+	case <-botDone:
+		logger.Info("Bot shutdown completed successfully")
 	}
+
+	wgDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(wgDone)
+	}()
+
+	wgTimeout := time.After(15 * time.Second)
+	select {
+	case <-wgDone:
+		logger.Info("All goroutines finished successfully")
+	case <-wgTimeout:
+		logger.Error("Some goroutines did not finish in time")
+	}
+
+	logger.Info("Shutdown completed")
 }

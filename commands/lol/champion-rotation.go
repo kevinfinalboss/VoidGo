@@ -67,7 +67,6 @@ var ChampionRotationCommand = &types.Command{
 
 		var fields []*discordgo.MessageEmbedField
 
-		// Processar campeões gratuitos da semana
 		freeChampImages := getChampionImagesLocal(rotations.FreeChampionIds, champData)
 		chunks := chunkImageUrls(freeChampImages, MaxFieldLength)
 		for i, chunk := range chunks {
@@ -82,7 +81,6 @@ var ChampionRotationCommand = &types.Command{
 			})
 		}
 
-		// Processar campeões gratuitos para novos jogadores
 		newPlayerImages := getChampionImagesLocal(rotations.FreeChampionIdsForNewPlayers, champData)
 		chunks = chunkImageUrls(newPlayerImages, MaxFieldLength)
 		for i, chunk := range chunks {
