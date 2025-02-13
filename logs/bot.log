@@ -1225,3 +1225,33 @@
 2025/02/12 02:31:43 logger.go:73: INFO: Logged in as: Boss Bot#2005
 2025/02/12 02:31:43 logger.go:73: INFO: Bot is in 1 guilds
 2025/02/12 04:01:04 logger.go:73: INFO: Received signal: terminated
+2025/02/13 11:09:02 logger.go:73: INFO: Starting HTTP server...
+2025/02/13 11:09:02 logger.go:73: INFO: Starting bot...
+2025/02/13 11:09:02 logger.go:73: INFO: Loading events...
+2025/02/13 11:09:02 logger.go:73: INFO: Loading commands...
+2025/02/13 11:09:02 logger.go:73: INFO: Found event in events\ready\ready.go
+2025/02/13 11:09:02 logger.go:73: INFO: Events loaded successfully
+2025/02/13 11:09:04 logger.go:73: INFO: Successfully registered 14 commands in 1.2624344s
+2025/02/13 11:09:04 logger.go:73: INFO: Bot started successfully in single mode
+2025/02/13 11:09:04 logger.go:73: INFO: Logged in as: Boss Bot#2005
+2025/02/13 11:09:04 logger.go:73: INFO: Bot is in 1 guilds
+2025/02/13 11:13:33 logger.go:73: INFO: Received signal: interrupt
+2025/02/13 11:13:33 logger.go:73: INFO: Initiating shutdown sequence...
+2025/02/13 11:13:34 logger.go:73: INFO: Bot shutdown completed successfully
+2025/02/13 11:13:34 logger.go:73: INFO: All goroutines finished successfully
+2025/02/13 11:13:34 logger.go:73: INFO: Shutdown completed
+2025/02/13 11:13:42 logger.go:73: INFO: Starting HTTP server...
+2025/02/13 11:13:42 logger.go:73: INFO: Starting bot...
+2025/02/13 11:13:42 logger.go:73: INFO: Loading events...
+2025/02/13 11:13:42 logger.go:73: INFO: Loading commands...
+2025/02/13 11:13:42 logger.go:73: INFO: Found event in events\ready\ready.go
+2025/02/13 11:13:42 logger.go:73: INFO: Events loaded successfully
+2025/02/13 11:13:43 logger.go:73: INFO: Successfully registered 14 commands in 334.7302ms
+2025/02/13 11:13:43 logger.go:73: INFO: Bot started successfully in single mode
+2025/02/13 11:13:43 logger.go:73: INFO: Logged in as: Lancelot#2005
+2025/02/13 11:13:43 logger.go:73: INFO: Bot is in 2 guilds
+2025/02/13 11:15:10 logger.go:73: INFO: Received signal: interrupt
+2025/02/13 11:15:10 logger.go:73: INFO: Initiating shutdown sequence...
+2025/02/13 11:15:11 logger.go:73: INFO: Bot shutdown completed successfully
+2025/02/13 11:15:11 logger.go:73: INFO: All goroutines finished successfully
+2025/02/13 11:15:11 logger.go:73: INFO: Shutdown completed
