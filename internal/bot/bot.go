@@ -315,7 +315,6 @@ func (b *Bot) Stop() error {
 		return errors.New("bot instance is nil")
 	}
 
-	// Fecha as sessões primeiro
 	var wg sync.WaitGroup
 	sessionErrors := make(chan error, len(b.sessions))
 
@@ -331,7 +330,6 @@ func (b *Bot) Stop() error {
 		}
 	}
 
-	// Aguarda o fechamento das sessões com timeout
 	done := make(chan struct{})
 	go func() {
 		wg.Wait()
@@ -342,10 +340,8 @@ func (b *Bot) Stop() error {
 	case <-ctx.Done():
 		return errors.New("session shutdown timed out")
 	case <-done:
-		// Continue com o fechamento do banco de dados
 	}
 
-	// Fecha o banco de dados por último
 	if b.db != nil {
 		if err := b.db.Close(); err != nil {
 			return fmt.Errorf("failed to close database: %v", err)

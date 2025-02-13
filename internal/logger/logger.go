@@ -27,15 +27,12 @@ func New(cfg struct {
 		File:  cfg.File,
 	}
 
-	// Se nenhum arquivo for especificado, use um padrão
 	if logConfig.File == "" {
 		logConfig.File = "logs/bot.log"
 	}
 
-	// Normaliza o caminho do arquivo
 	logConfig.File = strings.ReplaceAll(logConfig.File, "/", string(os.PathSeparator))
 
-	// Garante que o caminho é absoluto
 	if !filepath.IsAbs(logConfig.File) {
 		dir, err := os.Getwd()
 		if err != nil {
@@ -44,23 +41,19 @@ func New(cfg struct {
 		logConfig.File = filepath.Join(dir, logConfig.File)
 	}
 
-	// Garante que o diretório existe
 	logDir := filepath.Dir(logConfig.File)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		log.Fatal("Failed to create log directory:", err)
 	}
 
-	// Abre ou cria o arquivo de log
 	file, err := os.OpenFile(logConfig.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("Failed to open log file %s: %v", logConfig.File, err))
 	}
 
-	// Cria o logger com saída para o arquivo e stdout
 	multiWriter := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	fileLogger := log.New(file, "", log.Ldate|log.Ltime|log.Lshortfile)
 
-	// Log inicial para confirmar que está funcionando
 	multiWriter.Printf("Logger initialized. Log file: %s", logConfig.File)
 
 	return &Logger{

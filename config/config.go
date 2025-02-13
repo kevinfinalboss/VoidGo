@@ -1,4 +1,3 @@
-// config/config.go
 package config
 
 import (
@@ -23,7 +22,7 @@ type Config struct {
 
 	Server struct {
 		Port     int    `yaml:"port"`
-		Mode     string `yaml:"mode"` // "debug", "release", "test"
+		Mode     string `yaml:"mode"`
 		Host     string `yaml:"host"`
 		BasePath string `yaml:"base_path"`
 	} `yaml:"server"`
@@ -65,6 +64,11 @@ type Config struct {
 	ConvertAPI struct {
 		Secret string `yaml:"secret"`
 	} `yaml:"convertapi"`
+
+	Pterodactyl struct {
+		URL    string `yaml:"url"`
+		APIKey string `yaml:"api_token"`
+	} `yaml:"pterodactyl"`
 
 	Debug        bool      `yaml:"debug"`
 	BotStartTime time.Time `yaml:"-"`
