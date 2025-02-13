@@ -200,3 +200,20 @@ func getEmojiType(filename string) string {
 	}
 	return "Emoji Estático"
 }
+
+func respondWithError(s *discordgo.Session, i *discordgo.InteractionCreate, message string) error {
+	embed := &discordgo.MessageEmbed{
+		Title:       "Erro na Geração de Resposta",
+		Description: message,
+		Color:       0xFF0000,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Devil - IA • Erro",
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	_, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Embeds: &[]*discordgo.MessageEmbed{embed},
+	})
+	return err
+}
