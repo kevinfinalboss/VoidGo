@@ -9,6 +9,13 @@ services:
       - "8080:80"
     volumes:
       - ./logs:/app/logs
+      - ./events:/app/events
+      - ./commands:/app/commands
+      - ./internal:/app/internal
+      - ./api:/app/api
+      - ./config:/app/config
+      - ./scripts:/app/scripts
+      - ./config.yaml:/app/config.yaml
     deploy:
       resources:
         limits:
