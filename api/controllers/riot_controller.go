@@ -1,4 +1,3 @@
-// api/controllers/riot_controller.go
 package controllers
 
 import (

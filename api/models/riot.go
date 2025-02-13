@@ -1,4 +1,3 @@
-// api/models/riot.go
 package models
 
 type ChampionInfo struct {

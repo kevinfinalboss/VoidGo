@@ -78,10 +78,8 @@ var ExtractAudioCommand = &types.Command{
 			return respondWithError(s, i, "Erro ao extrair o áudio do vídeo.")
 		}
 
-		// Nome do arquivo original sem extensão
 		fileName := strings.TrimSuffix(attachment.Filename, filepath.Ext(attachment.Filename))
 
-		// Criar o embed com o link de download ajustado
 		embed := &discordgo.MessageEmbed{
 			Title:       "🎵 Extração de Áudio Concluída",
 			Color:       0x00ff00,
@@ -109,7 +107,6 @@ var ExtractAudioCommand = &types.Command{
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 
-		// Obtém o ID do usuário
 		var userID string
 		if i.Interaction.User != nil {
 			userID = i.Interaction.User.ID
@@ -119,19 +116,16 @@ var ExtractAudioCommand = &types.Command{
 			return respondWithError(s, i, "Não foi possível identificar o usuário.")
 		}
 
-		// Cria ou obtém o canal DM
 		dmChannel, err := s.UserChannelCreate(userID)
 		if err != nil {
 			return respondWithError(s, i, "Não foi possível enviar mensagem direta para você. Verifique se suas DMs estão abertas.")
 		}
 
-		// Envia o resultado por DM
 		_, err = s.ChannelMessageSendEmbed(dmChannel.ID, embed)
 		if err != nil {
 			return fmt.Errorf("falha ao enviar mensagem direta: %v", err)
 		}
 
-		// Atualiza a mensagem no canal original
 		_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 			Embeds: &[]*discordgo.MessageEmbed{
 				{
